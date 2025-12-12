@@ -11,7 +11,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 2. Init Modal
-    softwareModal = new bootstrap.Modal(document.getElementById('softwareModal'));
+    const modalEl = document.getElementById('softwareModal');
+    if(modalEl) softwareModal = new bootstrap.Modal(modalEl);
 
     // 3. Render Table
     renderTable();
@@ -20,6 +21,16 @@ document.addEventListener('DOMContentLoaded', () => {
 function renderTable() {
     const tbody = document.getElementById('softwareTableBody');
     const lib = DB.getSoftwareLib(); // ดึงข้อมูลจาก mock-db
+
+    // ✅ ส่วนที่เพิ่ม: อัปเดตตัวเลขในการ์ดสถิติ
+    const total = lib.length;
+    const aiCount = lib.filter(i => i.type === 'AI').length;
+    const swCount = lib.filter(i => i.type === 'Software').length;
+
+    if(document.getElementById('countTotal')) document.getElementById('countTotal').innerText = total;
+    if(document.getElementById('countAI')) document.getElementById('countAI').innerText = aiCount;
+    if(document.getElementById('countSW')) document.getElementById('countSW').innerText = swCount;
+    // ----------------------------------------------------
 
     tbody.innerHTML = '';
 
@@ -72,7 +83,7 @@ function openModal(id = null) {
         modalTitle.innerText = 'เพิ่มรายการใหม่';
     }
 
-    softwareModal.show();
+    if(softwareModal) softwareModal.show();
 }
 
 function saveSoftware() {
@@ -100,7 +111,7 @@ function saveSoftware() {
     }
 
     DB.saveSoftwareLib(lib);
-    softwareModal.hide();
+    if(softwareModal) softwareModal.hide();
     renderTable();
 }
 
