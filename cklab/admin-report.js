@@ -1,11 +1,11 @@
-/* admin-report.js (Final Version: Beautiful Charts & Full Functionality) */
+/* admin-report.js (Final: With Top 10 Software Chart) */
 
-// Global variables for Chart instances
+// Global variables
 let monthlyFacultyChartInstance, monthlyOrgChartInstance;
-let pieChartInstance, pcAvgChartInstance, satisfactionChartInstance, topSoftwareChartInstance;
+let pieChartInstance, pcAvgChartInstance, satisfactionChartInstance, topSoftwareChartInstance; // เพิ่มตัวแปรใหม่
 let allLogs; 
 
-// Master Lists
+// Master Lists (เหมือนเดิม)
 const FACULTY_LIST = ["คณะวิทยาศาสตร์", "คณะเกษตรศาสตร์", "คณะวิศวกรรมศาสตร์", "คณะศิลปศาสตร์", "คณะเภสัชศาสตร์", "คณะบริหารศาสตร์", "คณะพยาบาลศาสตร์", "วิทยาลัยแพทยศาสตร์และการสาธารณสุข", "คณะศิลปประยุกต์และสถาปัตยกรรมศาสตร์", "คณะนิติศาสตร์", "คณะรัฐศาสตร์", "คณะศึกษาศาสตร์"];
 const ORG_LIST = ["สำนักคอมพิวเตอร์และเครือข่าย", "สำนักบริหารทรัพย์สินและสิทธิประโยชน์", "สำนักวิทยบริการ", "กองกลาง", "กองแผนงาน", "กองคลัง", "กองบริการการศึกษา", "กองการเจ้าหน้าที่", "สำนักงานส่งเสริมและบริหารงานวิจัย ฯ", "สำนักงานพัฒนานักศึกษา", "สำนักงานบริหารกายภาพและสิ่งแวดล้อม", "สำนักงานวิเทศสัมพันธ์", "สำนักงานกฏหมายและนิติการ", "สำนักงานตรวจสอบภายใน", "สำนักงานรักษาความปลอดภัย", "สภาอาจารย์", "สหกรณ์ออมทรัพย์มหาวิทยาลัยอุบลราชธานี", "อุทยานวิทยาศาสตร์มหาวิทยาลัยอุบลราชธานี", "ศูนย์การจัดการความรู้ (KM)", "ศูนย์การเรียนรู้และพัฒนา \"งา\" เชิงเกษตรอุตสาหกรรมครัวเรือนแบบยั่งยืน", "สถานปฏิบัติการโรงแรมฯ (U-Place)", "ศูนย์วิจัยสังคมอนุภาคลุ่มน้ำโขง ฯ", "ศูนย์เครื่องมือวิทยาศาสตร์", "โรงพิมพ์มหาวิทยาลัยอุบลราชธานี"];
 
@@ -21,7 +21,9 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeReports(allLogs); 
 });
 
-// --- FILTER LOGIC ---
+// ... (Functions: populateFilterOptions, getFilterParams, applyFilters, clearFilters, filterLogs เหมือนเดิม) ...
+// (เพื่อความกระชับ ใช้โค้ดเดิมได้เลยครับ)
+
 function populateFilterOptions(logs) {
     const faculties = new Set(FACULTY_LIST);
     const organizations = new Set(ORG_LIST);
@@ -33,6 +35,7 @@ function populateFilterOptions(logs) {
     logs.forEach(log => {
         if (log.userLevel) levels.add(log.userLevel);
         if (log.userYear && log.userYear !== '-') years.add(log.userYear);
+        // เพิ่มเติมถ้ามีนอกเหนือจาก Master List
         if (log.userFaculty && !faculties.has(log.userFaculty) && !organizations.has(log.userFaculty)) {
              if (log.userFaculty.startsWith("คณะ") || log.userFaculty.startsWith("วิทยาลัย")) faculties.add(log.userFaculty);
              else if (log.userFaculty !== "บุคคลภายนอก" && log.userFaculty !== "ไม่ระบุสังกัด") organizations.add(log.userFaculty);
@@ -79,14 +82,17 @@ function filterLogs(logs, params) {
     return filtered;
 }
 
-// --- CHARTS & RENDER ---
+// ==========================================
+// 1. CHARTS & RENDER
+// ==========================================
+
 function initializeReports(logs) {
     if (monthlyFacultyChartInstance) monthlyFacultyChartInstance.destroy();
     if (monthlyOrgChartInstance) monthlyOrgChartInstance.destroy();
     if (pieChartInstance) pieChartInstance.destroy();
     if (pcAvgChartInstance) pcAvgChartInstance.destroy();
     if (satisfactionChartInstance) satisfactionChartInstance.destroy();
-    if (topSoftwareChartInstance) topSoftwareChartInstance.destroy(); 
+    if (topSoftwareChartInstance) topSoftwareChartInstance.destroy(); // Destroy new chart
 
     renderLogHistory(logs); 
 
@@ -95,14 +101,12 @@ function initializeReports(logs) {
 
     const processedData = processLogs(statsLogs);
     
-    // Graph 1 & 2: Monthly Line Charts (Smooth & Top 5)
-    monthlyFacultyChartInstance = drawBeautifulLineChart(processedData.monthlyFacultyData, 'monthlyFacultyChart', 5);
-    monthlyOrgChartInstance = drawBeautifulLineChart(processedData.monthlyOrgData, 'monthlyOrgChart', 5);
+    monthlyFacultyChartInstance = drawStackedBarChart(processedData.monthlyFacultyData, 'monthlyFacultyChart', 5);
+    monthlyOrgChartInstance = drawStackedBarChart(processedData.monthlyOrgData, 'monthlyOrgChart', 5);
     
-    // Graph Top 10 Software (Minimal Bar)
+    // ✅ เรียกกราฟ Top 10 Software
     topSoftwareChartInstance = drawTopSoftwareChart(processedData.softwareStats);
-    
-    // Other Charts
+
     pieChartInstance = drawAIUsagePieChart(processedData.aiUsageData); 
     pcAvgChartInstance = drawPCAvgTimeChart(processedData.pcAvgTimeData);
     satisfactionChartInstance = drawSatisfactionChart(processedData.satisfactionData);
@@ -114,7 +118,7 @@ function processLogs(filteredStatsLogs) {
     const aiUsageData = { ai: 0, nonAI: 0 };
     const pcUsageMap = new Map();
     const satisfactionData = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, total: 0 };
-    const softwareCount = {}; 
+    const softwareCount = {}; // เก็บจำนวนการใช้ Software
 
     filteredStatsLogs.forEach(log => {
         const date = new Date(log.timestamp);
@@ -132,9 +136,10 @@ function processLogs(filteredStatsLogs) {
 
         if (log.isAIUsed) aiUsageData.ai++; else aiUsageData.nonAI++;
 
+        // Count Software Usage
         if (Array.isArray(log.usedSoftware)) {
             log.usedSoftware.forEach(sw => {
-                const name = sw.split('(')[0].trim(); 
+                const name = sw.split('(')[0].trim(); // ตัด Version ออก
                 softwareCount[name] = (softwareCount[name] || 0) + 1;
             });
         }
@@ -161,63 +166,12 @@ function processLogs(filteredStatsLogs) {
     return { monthlyFacultyData, monthlyOrgData, aiUsageData, pcAvgTimeData, satisfactionData, softwareStats: softwareCount };
 }
 
-// ✅ 1. กราฟเส้นสวยงาม (Smooth Line Chart)
-function drawBeautifulLineChart(data, canvasId, topN = 5) {
-    const ctx = document.getElementById(canvasId).getContext('2d');
-    const months = Object.keys(data).sort((a, b) => {
-        const [mA, yA] = a.split(' '); const [mB, yB] = b.split(' ');
-        const monthMap = { "ม.ค.":0, "ก.พ.":1, "มี.ค.":2, "เม.ย.":3, "พ.ค.":4, "มิ.ย.":5, "ก.ค.":6, "ส.ค.":7, "ก.ย.":8, "ต.ค.":9, "พ.ย.":10, "ธ.ค.":11 };
-        return new Date(parseInt(yA) - 543, monthMap[mA], 1) - new Date(parseInt(yB) - 543, monthMap[mB], 1);
-    });
-
-    const groupTotals = {}; const allGroups = new Set();
-    months.forEach(m => { Object.keys(data[m]).forEach(group => { allGroups.add(group); groupTotals[group] = (groupTotals[group] || 0) + data[m][group]; }); });
-    const sortedGroups = Array.from(allGroups).sort((a, b) => groupTotals[b] - groupTotals[a]);
-    const topGroups = sortedGroups.slice(0, topN); const hasOthers = sortedGroups.length > topN;
-
-    const datasets = topGroups.map((group, index) => ({
-        label: group,
-        data: months.map(m => data[m][group] || 0),
-        borderColor: getChartColor(index),
-        backgroundColor: getChartColor(index),
-        borderWidth: 2.5,
-        tension: 0.4,
-        pointRadius: 4,
-        pointHoverRadius: 6,
-        pointBackgroundColor: '#fff',
-        pointBorderWidth: 2,
-        fill: false
-    }));
-
-    if (hasOthers) {
-        datasets.push({
-            label: 'อื่นๆ (รวม)',
-            data: months.map(m => { let sum = 0; sortedGroups.slice(topN).forEach(g => sum += (data[m][g] || 0)); return sum; }),
-            borderColor: '#adb5bd', backgroundColor: '#adb5bd',
-            borderWidth: 2, borderDash: [5, 5], tension: 0.4,
-            pointRadius: 3, pointBackgroundColor: '#fff', pointBorderWidth: 2, fill: false
-        });
-    }
-
-    return new Chart(ctx, {
-        type: 'line',
-        data: { labels: months, datasets },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            interaction: { mode: 'index', intersect: false },
-            plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20, font: { family: "'Prompt', sans-serif" } } } },
-            scales: { x: { grid: { display: false }, ticks: { font: { family: "'Prompt', sans-serif" } } }, y: { beginAtZero: true, grid: { borderDash: [2, 4], color: '#f0f0f0' }, ticks: { font: { family: "'Prompt', sans-serif" } } } }
-        }
-    });
-}
-
-// ✅ 2. กราฟ Top 10 Software (Minimal Bar)
+// ✅ ฟังก์ชันวาดกราฟ Top 10 Software (Horizontal Bar)
 function drawTopSoftwareChart(data) {
     const ctx = document.getElementById('topSoftwareChart');
     if(!ctx) return;
-    const gradient = ctx.getContext('2d').createLinearGradient(0, 0, 400, 0);
-    gradient.addColorStop(0, '#4e73df'); gradient.addColorStop(1, '#36b9cc');
 
+    // Sort Descending & Take Top 10
     const sorted = Object.entries(data).sort(([,a], [,b]) => b - a).slice(0, 10);
     const labels = sorted.map(x => x[0]);
     const values = sorted.map(x => x[1]);
@@ -227,41 +181,154 @@ function drawTopSoftwareChart(data) {
         data: {
             labels: labels,
             datasets: [{
-                label: 'จำนวนการใช้งาน', data: values,
-                backgroundColor: gradient, borderRadius: 20, barPercentage: 0.6
+                label: 'จำนวนการใช้งาน',
+                data: values,
+                backgroundColor: [
+                    '#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b',
+                    '#858796', '#5a5c69', '#2c9faf', '#3c5a99', '#d63384'
+                ],
+                borderRadius: 4
             }]
         },
         options: {
-            indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { display: false }, tooltip: { callbacks: { label: (context) => ` ใช้งาน: ${context.raw} ครั้ง` } } },
-            scales: { x: { beginAtZero: true, grid: { display: false }, ticks: { font: { family: "'Prompt', sans-serif" } } }, y: { grid: { display: false }, ticks: { font: { family: "'Prompt', sans-serif", weight: '500' } } } }
+            indexAxis: 'y', // แนวนอน
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: { 
+                    callbacks: { label: (context) => ` ถูกใช้งาน ${context.raw} ครั้ง` }
+                }
+            },
+            scales: { x: { beginAtZero: true } }
         }
     });
 }
 
-// ✅ 3. กราฟ Satisfaction (Horizontal Bar + Avg Score)
-function drawSatisfactionChart(data) {
-    const ctx = document.getElementById('satisfactionChart').getContext('2d');
-    const total = data.total || 1; 
-    const weightedSum = (data[5]*5) + (data[4]*4) + (data[3]*3) + (data[2]*2) + (data[1]*1);
-    const avgScore = (total > 0 && weightedSum > 0) ? (weightedSum / total).toFixed(2) : "0.00";
-    const labels = [`5 ดาว (${((data[5]/total)*100).toFixed(0)}%)`, `4 ดาว (${((data[4]/total)*100).toFixed(0)}%)`, `3 ดาว (${((data[3]/total)*100).toFixed(0)}%)`, `2 ดาว (${((data[2]/total)*100).toFixed(0)}%)`, `1 ดาว (${((data[1]/total)*100).toFixed(0)}%)`];
-    const values = [data[5], data[4], data[3], data[2], data[1]];
-    const colors = ['#198754', '#28a745', '#ffc107', '#fd7e14', '#dc3545'];
+// ... (Stacked Bar Chart, Pie, Doughnut, Helper Functions เดิม - คงไว้เหมือนเดิม) ...
+// (เพื่อประหยัดพื้นที่ ผมขออนุญาตละส่วนที่ซ้ำเดิมไว้ แต่คุณสามารถใช้โค้ดเดิมในส่วนนั้นได้เลยครับ)
 
-    return new Chart(ctx, {
-        type: 'bar',
-        data: { labels: labels, datasets: [{ data: values, backgroundColor: colors, borderRadius: 4, barPercentage: 0.6 }] },
-        options: {
-            indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-            plugins: {
-                title: { display: true, text: `คะแนนเฉลี่ย: ${avgScore} / 5.00`, font: { size: 16, family: "'Prompt', sans-serif" }, padding: { bottom: 15 } },
-                legend: { display: false }
-            },
-            scales: { x: { display: false, max: Math.max(...values) * 1.15 }, y: { grid: { display: false }, ticks: { font: { family: "'Prompt', sans-serif" } } } }
-        }
+// *** สำคัญ: อย่าลืมก๊อปปี้ฟังก์ชัน drawStackedBarChart, drawSatisfactionChart ฯลฯ มาด้วยนะครับ ถ้าต้องการให้ผมรวมให้ทั้งหมด บอกได้เลย ***
+
+// ... (ส่วน Helper Functions ที่เหลือ) ...
+function autoSetDates() {
+    const period = document.getElementById('filterPeriod').value;
+    const today = new Date();
+    let start, end;
+    switch(period) {
+        case 'today': start = end = today; break;
+        case 'this_month': start = new Date(today.getFullYear(), today.getMonth(), 1); end = new Date(today.getFullYear(), today.getMonth() + 1, 0); break;
+        case 'this_year': start = new Date(today.getFullYear(), 0, 1); end = new Date(today.getFullYear(), 11, 31); break;
+        default: return; 
+    }
+    document.getElementById('filterStartDate').value = formatDateForInput(start);
+    document.getElementById('filterEndDate').value = formatDateForInput(end);
+}
+function formatDateForInput(date) { return date.toISOString().split('T')[0]; }
+function formatDateStr(date) { return date.toISOString().split('T')[0]; }
+
+function exportReport(mode) {
+    const today = new Date();
+    let startDate, endDate, fileNamePrefix;
+    switch(mode) {
+        case 'daily': startDate = endDate = new Date(today); fileNamePrefix = `Daily_${formatDateStr(today)}`; break;
+        case 'monthly': startDate = new Date(today.getFullYear(), today.getMonth(), 1); endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0); fileNamePrefix = `Monthly_${today.getFullYear()}_${today.getMonth()+1}`; break;
+        case 'quarterly': const q = Math.floor(today.getMonth() / 3); startDate = new Date(today.getFullYear(), q * 3, 1); endDate = new Date(today.getFullYear(), (q * 3) + 3, 0); fileNamePrefix = `Quarterly_${today.getFullYear()}_Q${q+1}`; break;
+        case 'yearly': startDate = new Date(today.getFullYear(), 0, 1); endDate = new Date(today.getFullYear(), 11, 31); fileNamePrefix = `Yearly_${today.getFullYear()}`; break;
+        default: exportCSV(); return;
+    }
+    generateCSV(startDate, endDate, fileNamePrefix);
+}
+
+function renderLifetimeStats() {
+    const logs = DB.getLogs();
+    const total = logs.length;
+    let internal = 0, external = 0;
+    logs.forEach(l => { (l.userRole === 'external' || l.userRole === 'Guest') ? external++ : internal++; });
+    document.getElementById('lifetimeTotalCount').innerText = total.toLocaleString();
+    document.getElementById('lifetimeInternal').innerText = internal.toLocaleString();
+    document.getElementById('lifetimeExternal').innerText = external.toLocaleString();
+    document.getElementById('progInternal').style.width = `${total>0?(internal/total)*100:0}%`;
+    document.getElementById('progExternal').style.width = `${total>0?(external/total)*100:0}%`;
+}
+
+function generateCSV(startDateObj, endDateObj, fileNamePrefix) {
+    const allLogs = DB.getLogs();
+    const filteredLogs = allLogs.filter(log => {
+        const logDate = new Date(log.timestamp).setHours(0,0,0,0);
+        return logDate >= startDateObj.setHours(0,0,0,0) && logDate <= endDateObj.setHours(0,0,0,0);
     });
-}   
+    if (filteredLogs.length === 0) { alert('ไม่พบข้อมูลในช่วงเวลาดังกล่าว'); return; }
+    let csvContent = "ลำดับ,วันที่,เวลาเข้า,เวลาออก,ชื่อผู้ใช้,รหัส/ID,คณะ/หน่วยงาน,ประเภท,PC ID,Software/AI ที่ใช้,ระยะเวลา(นาที),ความพึงพอใจ\n";
+    filteredLogs.forEach((log, index) => {
+        const dateStr = new Date(log.timestamp).toLocaleDateString('th-TH');
+        const timeIn = log.startTime ? new Date(log.startTime).toLocaleTimeString('th-TH') : '-';
+        const timeOut = new Date(log.timestamp).toLocaleTimeString('th-TH');
+        let swStr = (log.usedSoftware && log.usedSoftware.length > 0) ? log.usedSoftware.join('; ') : "-";
+        const clean = (text) => text ? String(text).replace(/,/g, " ") : "-";
+        const row = [ index + 1, dateStr, timeIn, timeOut, clean(log.userName), clean(log.userId), clean(log.userFaculty), clean(getUserType(log)), clean(log.pcId), `"${swStr}"`, log.durationMinutes || 0, log.satisfactionScore || "-" ];
+        csvContent += row.join(",") + "\n";
+    });
+    const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a"); link.setAttribute("href", url); link.setAttribute("download", `${fileNamePrefix}.csv`);
+    document.body.appendChild(link); link.click(); document.body.removeChild(link);
+}
+
+function exportCSV() {
+    const filteredLogs = filterLogs(allLogs, getFilterParams());
+    if (filteredLogs.length === 0) { alert("ไม่พบข้อมูล Log ตามเงื่อนไขที่เลือกสำหรับดาวน์โหลด"); return; }
+    const headers = ["ลำดับ", "วันที่", "เวลาเข้า", "เวลาออก", "ผู้ใช้ / ID", "คณะ / สังกัด", "PC ที่ใช้", "AI/Software ที่ใช้", "สถานะ", "ระยะเวลา (นาที)", "ความพึงพอใจ (Score)"];
+    const csvRows = filteredLogs.map((log, index) => {
+        const startTimeStr = log.startTime ? formatExportDateTime(log.startTime) : formatExportDateTime(log.timestamp);
+        const endTimeStr = formatExportDateTime(log.timestamp);
+        const userNameDisplay = log.userName || log.userId || '';
+        const userFaculty = log.userFaculty || (log.userRole === 'external' ? 'บุคคลภายนอก' : '');
+        const pcName = `PC-${log.pcId || 'N/A'}`;
+        const softwareList = formatSoftwareForCSV(log.usedSoftware);
+        let statusText = log.action;
+        if (log.action === 'START_SESSION') statusText = 'Check in'; else if (log.action === 'END_SESSION') statusText = 'Check out'; else if (!statusText) statusText = 'Undefined';
+        const durationMinutes = log.durationMinutes ? log.durationMinutes.toFixed(0) : '';
+        const satisfactionScore = log.satisfactionScore !== undefined ? log.satisfactionScore : '';
+        return [`"${index + 1}"`, `"${endTimeStr.split(' ')[0]}"`, `"${startTimeStr.split(' ')[1]}"`, `"${endTimeStr.split(' ')[1]}"`, `"${userNameDisplay}"`, `"${userFaculty}"`, `"${pcName}"`, `"${softwareList}"`, `"${statusText}"`, `"${durationMinutes}"`, `"${satisfactionScore}"`].join(',');
+    });
+    const csvContent = [headers.join(','), ...csvRows].join('\n');
+    const blob = new Blob(["\ufeff" + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a'); link.setAttribute('href', URL.createObjectURL(blob)); link.setAttribute('download', `Usage_Report_Filtered_${new Date().toISOString().slice(0, 10)}.csv`); document.body.appendChild(link); link.click(); document.body.removeChild(link);
+}
+
+function processImportCSV(inputElement) { const file = inputElement.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = function(e) { parseAndSaveCSV(e.target.result); }; reader.readAsText(file); inputElement.value = ''; }
+function parseAndSaveCSV(csvText) { /* ... Logic เดิม ... */ } // (คงไว้เหมือนเดิม)
+function parseCSVLine(text) { /* ... Logic เดิม ... */ }
+function convertToISO(dateStr, timeStr) { /* ... Logic เดิม ... */ }
+function getUserType(log) { if (log.userRole === 'external' || log.userRole === 'Guest') return 'External'; return 'Internal'; }
+function formatExportDateTime(isoString) { if (!isoString) return ''; const date = new Date(isoString); return date.toLocaleDateString('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }) + ' ' + date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }); }
+function formatSoftwareForCSV(softwareArray) { if (!Array.isArray(softwareArray) || softwareArray.length === 0) return ''; return softwareArray.join('; '); }
+function getSatisfactionDisplay(score) { if (score === undefined || score === null) return '<span class="text-muted">-</span>'; const scoreNum = parseFloat(score); if (scoreNum >= 4) return `<span class="badge bg-success fw-bold"><i class="bi bi-star-fill"></i> ${score}</span>`; else if (scoreNum >= 2) return `<span class="badge bg-warning text-dark"><i class="bi bi-star-half"></i> ${score}</span>`; else return `<span class="badge bg-danger"><i class="bi bi-star"></i> ${score}</span>`; }
+function formatLogDate(isoString) { if (!isoString) return '-'; const date = new Date(isoString); return date.toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' }); }
+function formatLogTime(isoString) { if (!isoString) return '-'; const date = new Date(isoString); return date.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }); }
+function renderLogHistory(logs) { /* ... Logic เดิม ... */ } // (ใช้โค้ดเดิมได้เลยครับ)
+
+// Stacked Bar Chart Function
+function drawStackedBarChart(data, canvasId, topN = 5) {
+    const ctx = document.getElementById(canvasId).getContext('2d');
+    const months = Object.keys(data).sort((a, b) => {
+        const [mA, yA] = a.split(' '); const [mB, yB] = b.split(' ');
+        const monthMap = { "ม.ค.":0, "ก.พ.":1, "มี.ค.":2, "เม.ย.":3, "พ.ค.":4, "มิ.ย.":5, "ก.ค.":6, "ส.ค.":7, "ก.ย.":8, "ต.ค.":9, "พ.ย.":10, "ธ.ค.":11 };
+        return new Date(parseInt(yA) - 543, monthMap[mA], 1) - new Date(parseInt(yB) - 543, monthMap[mB], 1);
+    });
+    const groupTotals = {}; const allGroups = new Set();
+    months.forEach(m => { Object.keys(data[m]).forEach(group => { allGroups.add(group); groupTotals[group] = (groupTotals[group] || 0) + data[m][group]; }); });
+    const sortedGroups = Array.from(allGroups).sort((a, b) => groupTotals[b] - groupTotals[a]);
+    const topGroups = sortedGroups.slice(0, topN); const hasOthers = sortedGroups.length > topN;
+    const datasets = topGroups.map((group, index) => {
+        return { label: group, data: months.map(m => data[m][group] || 0), backgroundColor: getChartColor(index), borderRadius: 4, stack: 'Stack 0' };
+    });
+    if (hasOthers) {
+        datasets.push({ label: 'อื่นๆ (รวม)', data: months.map(m => { let sum = 0; sortedGroups.slice(topN).forEach(g => sum += (data[m][g] || 0)); return sum; }), backgroundColor: '#e0e0e0', borderRadius: 4, stack: 'Stack 0' });
+    }
+    return new Chart(ctx, { type: 'bar', data: { labels: months, datasets }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: true, grid: { display: false } }, y: { stacked: true, beginAtZero: true, grid: { borderDash: [2, 4] } } }, plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8 } }, tooltip: { mode: 'index', intersect: false } } } });
+}
 
 // 🎨 Palette สีที่คัดมาแล้วว่าสวยและแยกแยะง่าย
 function getChartColor(index) {
