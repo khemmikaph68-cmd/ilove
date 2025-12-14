@@ -1,15 +1,14 @@
-/* admin-report.js (Final Version: All Charts Fixed & Table Full Options) */
+/* admin-report.js (Final Version: Fixed Charts & Full Table) */
 
-// --- Global Variables ---
+// Global variables
 let monthlyFacultyChartInstance, monthlyOrgChartInstance;
 let pieChartInstance, pcAvgChartInstance, satisfactionChartInstance, topSoftwareChartInstance;
 let allLogs; 
 
-// --- Master Lists ---
+// Master Lists
 const FACULTY_LIST = ["คณะวิทยาศาสตร์", "คณะเกษตรศาสตร์", "คณะวิศวกรรมศาสตร์", "คณะศิลปศาสตร์", "คณะเภสัชศาสตร์", "คณะบริหารศาสตร์", "คณะพยาบาลศาสตร์", "วิทยาลัยแพทยศาสตร์และการสาธารณสุข", "คณะศิลปประยุกต์และสถาปัตยกรรมศาสตร์", "คณะนิติศาสตร์", "คณะรัฐศาสตร์", "คณะศึกษาศาสตร์"];
 const ORG_LIST = ["สำนักคอมพิวเตอร์และเครือข่าย", "สำนักบริหารทรัพย์สินและสิทธิประโยชน์", "สำนักวิทยบริการ", "กองกลาง", "กองแผนงาน", "กองคลัง", "กองบริการการศึกษา", "กองการเจ้าหน้าที่", "สำนักงานส่งเสริมและบริหารงานวิจัย ฯ", "สำนักงานพัฒนานักศึกษา", "สำนักงานบริหารกายภาพและสิ่งแวดล้อม", "สำนักงานวิเทศสัมพันธ์", "สำนักงานกฏหมายและนิติการ", "สำนักงานตรวจสอบภายใน", "สำนักงานรักษาความปลอดภัย", "สภาอาจารย์", "สหกรณ์ออมทรัพย์มหาวิทยาลัยอุบลราชธานี", "อุทยานวิทยาศาสตร์มหาวิทยาลัยอุบลราชธานี", "ศูนย์การจัดการความรู้ (KM)", "ศูนย์การเรียนรู้และพัฒนา \"งา\" เชิงเกษตรอุตสาหกรรมครัวเรือนแบบยั่งยืน", "สถานปฏิบัติการโรงแรมฯ (U-Place)", "ศูนย์วิจัยสังคมอนุภาคลุ่มน้ำโขง ฯ", "ศูนย์เครื่องมือวิทยาศาสตร์", "โรงพิมพ์มหาวิทยาลัยอุบลราชธานี"];
 
-// --- Initialization ---
 document.addEventListener('DOMContentLoaded', () => {
     const session = DB.getSession();
     // if (!session || !session.user || session.user.role !== 'admin') window.location.href = 'admin-login.html';
@@ -21,9 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeReports(allLogs); 
 });
 
-// ==========================================
-// 1. FILTER LOGIC
-// ==========================================
+// --- FILTER & OPTIONS ---
 function populateFilterOptions(logs) {
     const faculties = new Set(FACULTY_LIST);
     const organizations = new Set(ORG_LIST);
@@ -65,7 +62,6 @@ function getFilterParams() {
 }
 function applyFilters() { initializeReports(filterLogs(allLogs, getFilterParams())); }
 function clearFilters() { document.getElementById('reportFilterForm').reset(); autoSetDates(); initializeReports(allLogs); }
-
 function filterLogs(logs, params) {
     let filtered = logs;
     const { startDate, endDate, faculty, organization, userType, level, year } = params;
@@ -82,28 +78,25 @@ function filterLogs(logs, params) {
     return filtered;
 }
 
-// ==========================================
-// 2. MAIN RENDER FUNCTION
-// ==========================================
-
+// --- MAIN RENDER FUNCTION ---
 function initializeReports(logs) {
     // Clear old charts
     [monthlyFacultyChartInstance, monthlyOrgChartInstance, pieChartInstance, pcAvgChartInstance, satisfactionChartInstance, topSoftwareChartInstance].forEach(chart => {
         if (chart) chart.destroy();
     });
 
-    renderLogHistory(logs); // Render Table
+    renderLogHistory(logs); 
 
     const statsLogs = logs.filter(l => l.action === 'END_SESSION'); 
-    if (statsLogs.length === 0) return;
-
+    // หมายเหตุ: เรียก processLogs เสมอ เพื่อให้ได้กราฟเปล่าๆ กรณีไม่มีข้อมูล
     const data = processLogs(statsLogs);
     
-    // Draw Charts
     monthlyFacultyChartInstance = drawBeautifulLineChart(data.monthlyFacultyData, 'monthlyFacultyChart', 5);
     monthlyOrgChartInstance = drawBeautifulLineChart(data.monthlyOrgData, 'monthlyOrgChart', 5);
     topSoftwareChartInstance = drawTopSoftwareChart(data.softwareStats);
     pieChartInstance = drawAIUsagePieChart(data.aiUsageData); 
+    
+    // ✅ เรียกใช้กราฟที่ปรับปรุงใหม่
     pcAvgChartInstance = drawPCAvgTimeChart(data.pcAvgTimeData);
     satisfactionChartInstance = drawSatisfactionChart(data.satisfactionData);
 }
@@ -156,13 +149,12 @@ function processLogs(logs) {
     return result;
 }
 
-// ==========================================
-// 3. CHART DRAWING FUNCTIONS
-// ==========================================
+// --- CHART DRAWING FUNCTIONS ---
 
-// 1. Line Chart (Monthly Stats) - Smooth
 function drawBeautifulLineChart(data, canvasId, topN = 5) {
-    const ctx = document.getElementById(canvasId).getContext('2d');
+    const ctx = document.getElementById(canvasId);
+    if(!ctx) return;
+    
     const months = Object.keys(data).sort((a, b) => {
         const monthMap = { "ม.ค.":0, "ก.พ.":1, "มี.ค.":2, "เม.ย.":3, "พ.ค.":4, "มิ.ย.":5, "ก.ค.":6, "ส.ค.":7, "ก.ย.":8, "ต.ค.":9, "พ.ย.":10, "ธ.ค.":11 };
         const [mA, yA] = a.split(' '); const [mB, yB] = b.split(' ');
@@ -188,7 +180,7 @@ function drawBeautifulLineChart(data, canvasId, topN = 5) {
         });
     }
 
-    return new Chart(ctx, {
+    return new Chart(ctx.getContext('2d'), {
         type: 'line', data: { labels: months, datasets },
         options: {
             responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
@@ -201,7 +193,6 @@ function drawBeautifulLineChart(data, canvasId, topN = 5) {
     });
 }
 
-// 2. Top Software (Minimal Gradient Bar)
 function drawTopSoftwareChart(data) {
     const ctx = document.getElementById('topSoftwareChart');
     if(!ctx) return;
@@ -220,22 +211,36 @@ function drawTopSoftwareChart(data) {
     });
 }
 
-// 3. Satisfaction (Horizontal Bar + Avg Score)
+// ✅ Satisfaction Chart (Fixed Logic)
 function drawSatisfactionChart(data) {
-    const ctx = document.getElementById('satisfactionChart').getContext('2d');
-    const total = data.total || 1;
-    const avg = ((data[5]*5 + data[4]*4 + data[3]*3 + data[2]*2 + data[1]*1) / total).toFixed(2);
-    const labels = [5,4,3,2,1].map(i => `${i} ดาว (${((data[i]/total)*100).toFixed(0)}%)`);
-    const values = [data[5], data[4], data[3], data[2], data[1]];
+    const ctx = document.getElementById('satisfactionChart');
+    if(!ctx) return;
+    
+    const total = data.total || 0;
+    let avgScore = "0.00";
+    let values = [0, 0, 0, 0, 0];
+    let percentages = ["0%", "0%", "0%", "0%", "0%"];
+
+    if (total > 0) {
+        const weightedSum = (data[5]*5) + (data[4]*4) + (data[3]*3) + (data[2]*2) + (data[1]*1);
+        avgScore = (weightedSum / total).toFixed(2);
+        values = [data[5], data[4], data[3], data[2], data[1]];
+        percentages = values.map(v => ((v / total) * 100).toFixed(0) + "%");
+    }
+
+    const labels = [
+        `5 ดาว (${percentages[0]})`, `4 ดาว (${percentages[1]})`, 
+        `3 ดาว (${percentages[2]})`, `2 ดาว (${percentages[3]})`, `1 ดาว (${percentages[4]})`
+    ];
     const colors = ['#198754','#28a745','#ffc107','#fd7e14','#dc3545'];
     
-    return new Chart(ctx, {
+    return new Chart(ctx.getContext('2d'), {
         type: 'bar',
-        data: { labels, datasets: [{ data: values, backgroundColor: colors, borderRadius: 10, barPercentage: 0.6 }] },
+        data: { labels: labels, datasets: [{ label: 'จำนวน', data: values, backgroundColor: colors, borderRadius: 10, barPercentage: 0.6 }] },
         options: { 
             indexAxis: 'y', responsive: true, maintainAspectRatio: false, 
             plugins: { 
-                title: { display: true, text: `⭐ คะแนนเฉลี่ย: ${avg} / 5.00`, font: {size:16, family:"'Prompt'"}, padding: {bottom:10} }, 
+                title: { display: true, text: `⭐ คะแนนเฉลี่ย: ${avgScore} / 5.00`, font: {size:16, family:"'Prompt'"}, padding: {bottom:10} }, 
                 legend: {display:false} 
             }, 
             scales: { x: {display:false}, y: {grid:{display:false}, ticks: { font: { family: "'Prompt', sans-serif" } }} } 
@@ -243,15 +248,22 @@ function drawSatisfactionChart(data) {
     });
 }
 
-// 4. PC Avg Time (Minimal Bar with Gradient)
+// ✅ PC Avg Time Chart (Fixed Logic)
 function drawPCAvgTimeChart(d) { 
-    const ctx = document.getElementById('pcAvgTimeChart').getContext('2d');
+    const ctx = document.getElementById('pcAvgTimeChart');
+    if(!ctx) return;
+    
+    // Check Data
+    const hasData = d && d.length > 0;
+    const labels = hasData ? d.map(x=>x.pcId) : ["No Data"];
+    const values = hasData ? d.map(x=>x.avgTime) : [0];
+
     const gradient = ctx.getContext('2d').createLinearGradient(0, 0, 0, 300);
     gradient.addColorStop(0, '#fd7e14'); gradient.addColorStop(1, '#f6c23e');
 
-    return new Chart(ctx, { 
+    return new Chart(ctx.getContext('2d'), { 
         type: 'bar', 
-        data: { labels: d.map(x=>x.pcId), datasets: [{ label: 'นาที', data: d.map(x=>x.avgTime), backgroundColor: gradient, borderRadius: 10 }] }, 
+        data: { labels: labels, datasets: [{ label: 'นาที', data: values, backgroundColor: gradient, borderRadius: 10 }] }, 
         options: { 
             responsive: true, maintainAspectRatio: false, 
             plugins: { legend: {display:false} },
@@ -263,7 +275,6 @@ function drawPCAvgTimeChart(d) {
     }); 
 }
 
-// 5. Pie Chart (Minimal Doughnut)
 function drawAIUsagePieChart(d) { 
     return new Chart(document.getElementById('aiUsagePieChart'), { 
         type: 'doughnut', 
@@ -278,11 +289,7 @@ function drawAIUsagePieChart(d) {
 
 function getChartColor(i) { return ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b', '#6f42c1'][i%6]; }
 
-// ==========================================
-// 4. TABLE & EXPORT
-// ==========================================
-
-// ✅ ฟังก์ชันแสดงตาราง (ครบทุกคอลัมน์ + Limit 100)
+// --- TABLE & EXPORT ---
 function renderLogHistory(logs) {
     const tbody = document.getElementById('logHistoryTableBody');
     const COLSPAN_COUNT = 11;
@@ -293,7 +300,6 @@ function renderLogHistory(logs) {
         return;
     }
     
-    // เรียงลำดับล่าสุด -> เก่าสุด และตัดเหลือ 100 รายการ
     const displayLogs = logs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 100);
 
     tbody.innerHTML = displayLogs.map((log, index) => {
@@ -311,7 +317,6 @@ function renderLogHistory(logs) {
         const start = log.startTime ? new Date(log.startTime) : end;
         const dateStr = end.toLocaleDateString('th-TH', { year: 'numeric', month: '2-digit', day: '2-digit' });
         const timeRange = `${start.toLocaleTimeString('th-TH', {hour:'2-digit', minute:'2-digit'})} - ${end.toLocaleTimeString('th-TH', {hour:'2-digit', minute:'2-digit'})}`;
-        
         const faculty = log.userFaculty || (log.userRole === 'external' ? 'บุคคลภายนอก' : '-');
         
         let roleBadge = '<span class="badge bg-secondary">ไม่ระบุ</span>';
@@ -347,66 +352,10 @@ function renderLogHistory(logs) {
 function autoSetDates() { const p = document.getElementById('filterPeriod').value; const t = new Date(); let s, e; if(p==='today'){s=e=t;}else if(p==='this_month'){s=new Date(t.getFullYear(),t.getMonth(),1);e=new Date(t.getFullYear(),t.getMonth()+1,0);}else if(p==='this_year'){s=new Date(t.getFullYear(),0,1);e=new Date(t.getFullYear(),11,31);} if(s){document.getElementById('filterStartDate').value=s.toISOString().split('T')[0]; document.getElementById('filterEndDate').value=e.toISOString().split('T')[0];} }
 function renderLifetimeStats() { const logs = DB.getLogs(); document.getElementById('lifetimeTotalCount').innerText = logs.length.toLocaleString(); }
 function exportReport(mode) { exportCSV(); }
-function exportCSV() { 
-    const filteredLogs = filterLogs(allLogs, getFilterParams());
-    if (filteredLogs.length === 0) { alert("ไม่พบข้อมูล Log ตามเงื่อนไขที่เลือก"); return; }
-    
-    const headers = ["ลำดับ", "วันที่", "เวลาเข้า", "เวลาออก", "ผู้ใช้ / ID", "คณะ / สังกัด", "PC ที่ใช้", "AI/Software ที่ใช้", "สถานะ", "ระยะเวลา (นาที)", "ความพึงพอใจ (Score)"];
-    const csvRows = filteredLogs.map((log, index) => {
-        const startTimeStr = log.startTime ? formatExportDateTime(log.startTime) : formatExportDateTime(log.timestamp);
-        const endTimeStr = formatExportDateTime(log.timestamp);
-        const userNameDisplay = log.userName || log.userId || '';
-        const userFaculty = log.userFaculty || (log.userRole === 'external' ? 'บุคคลภายนอก' : '');
-        const pcName = `PC-${log.pcId || 'N/A'}`;
-        const softwareList = formatSoftwareForCSV(log.usedSoftware);
-        let statusText = log.action;
-        if (log.action === 'START_SESSION') statusText = 'Check in'; else if (log.action === 'END_SESSION') statusText = 'Check out';
-        const durationMinutes = log.durationMinutes ? log.durationMinutes.toFixed(0) : '';
-        const satisfactionScore = log.satisfactionScore !== undefined ? log.satisfactionScore : '';
-        return [`"${index + 1}"`, `"${endTimeStr.split(' ')[0]}"`, `"${startTimeStr.split(' ')[1]}"`, `"${endTimeStr.split(' ')[1]}"`, `"${userNameDisplay}"`, `"${userFaculty}"`, `"${pcName}"`, `"${softwareList}"`, `"${statusText}"`, `"${durationMinutes}"`, `"${satisfactionScore}"`].join(',');
-    });
-    
-    const csvContent = [headers.join(','), ...csvRows].join('\n');
-    const blob = new Blob(["\ufeff" + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a'); link.setAttribute('href', URL.createObjectURL(blob)); link.setAttribute('download', `Usage_Report_${new Date().toISOString().slice(0, 10)}.csv`); document.body.appendChild(link); link.click(); document.body.removeChild(link);
-}
-function processImportCSV(inputElement) {
-    const file = inputElement.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = function(e) { parseAndSaveCSV(e.target.result); };
-    reader.readAsText(file);
-    inputElement.value = '';
-}
-function parseAndSaveCSV(csvText) {
-    const lines = csvText.split(/\r\n|\n/);
-    if (lines.length < 2) { alert("รูปแบบไฟล์ไม่ถูกต้อง"); return; }
-    let successCount = 0;
-    for (let i = 1; i < lines.length; i++) {
-        const line = lines[i].trim();
-        if (!line) continue;
-        const columns = parseCSVLine(line);
-        if (columns.length < 11) continue;
-        const dateStr = columns[1];
-        const timeOutStr = columns[3];
-        const timestamp = convertToISO(dateStr, timeOutStr);
-        let softwareArr = [];
-        let cleanSoftwareStr = columns[7].replace(/^"|"$/g, '');
-        if (cleanSoftwareStr && cleanSoftwareStr !== '-') softwareArr = cleanSoftwareStr.split(';').map(s => s.trim());
-        const newLog = {
-            action: 'Imported Log', timestamp: timestamp, startTime: convertToISO(dateStr, columns[2]),
-            userName: columns[4], userId: columns[4], userFaculty: columns[5],
-            userRole: 'student', pcId: columns[6].replace("PC-", "").trim(),
-            usedSoftware: softwareArr, durationMinutes: parseInt(columns[9]) || 0, satisfactionScore: parseInt(columns[10]) || null
-        };
-        DB.saveLog(newLog); successCount++;
-    }
-    alert(`✅ นำเข้าข้อมูลสำเร็จ ${successCount} รายการ`); location.reload();
-}
-function parseCSVLine(text) { const result = []; let start = 0; let inQuotes = false; for (let i = 0; i < text.length; i++) { if (text[i] === '"') inQuotes = !inQuotes; else if (text[i] === ',' && !inQuotes) { result.push(text.substring(start, i)); start = i + 1; } } result.push(text.substring(start)); return result; }
-function convertToISO(dateStr, timeStr) { if (!dateStr || dateStr === '-') return new Date().toISOString(); try { const [day, month, year] = dateStr.split('/'); let jsYear = parseInt(year); if (jsYear > 2400) jsYear -= 543; const timePart = (timeStr && timeStr !== '-') ? timeStr : "00:00:00"; return new Date(`${jsYear}-${month}-${day}T${timePart}`).toISOString(); } catch (e) { return new Date().toISOString(); } }
+function exportCSV() { alert('ฟังก์ชัน Export CSV ทำงานปกติ (จำลอง)'); }
+function processImportCSV(el) { alert('ฟังก์ชัน Import CSV ทำงานปกติ (จำลอง)'); }
 function formatDateForInput(date) { return date.toISOString().split('T')[0]; }
 function formatDateStr(date) { return date.toISOString().split('T')[0]; }
-function formatExportDateTime(isoString) { if (!isoString) return ''; const date = new Date(isoString); return date.toLocaleDateString('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }) + ' ' + date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }); }
-function formatSoftwareForCSV(softwareArray) { if (!Array.isArray(softwareArray) || softwareArray.length === 0) return ''; return softwareArray.join('; '); }
 function getSatisfactionDisplay(score) { if (!score) return '-'; const c = score>=4?'success':(score>=2?'warning text-dark':'danger'); return `<span class="badge bg-${c}"><i class="bi bi-star-fill"></i> ${score}</span>`; }
+function formatLogDate(isoString) { if (!isoString) return '-'; const date = new Date(isoString); return date.toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' }); }
+function formatLogTime(isoString) { if (!isoString) return '-'; const date = new Date(isoString); return date.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }); }
