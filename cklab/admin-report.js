@@ -295,7 +295,7 @@ function drawSatisfactionChart(data) {
         options: { 
             indexAxis: 'y', responsive: true, maintainAspectRatio: false, 
             plugins: { 
-                title: { display: true, text: `⭐ คะแนนเฉลี่ย: ${avgScore} / 5.00`, font: {size:16, family:"'Prompt'"}, padding: {bottom:10} }, 
+                title: { display: true, text: `⭐ คะแนนเฉลี่ย : ${avgScore} / 5.00`, font: {size:16, family:"'Prompt'"}, padding: {bottom:10} }, 
                 legend: {display:false} 
             }, 
             scales: { x: {display:false}, y: {grid:{display:false}, ticks: { font: { family: "'Prompt', sans-serif" } }} } 
