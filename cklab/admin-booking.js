@@ -11,13 +11,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const dateFilter = document.getElementById('bookingDateFilter');
     if (dateFilter) dateFilter.valueAsDate = new Date();
 
-    // 3. Listener for PC Select
-    const pcSelect = document.getElementById('bkPcSelect');
-    if (pcSelect) {
-        pcSelect.addEventListener('change', updateSoftwareList);
-    }
 
-    // 4. Render Table
+    // 3. Render Table
     renderBookings();
 });
 
