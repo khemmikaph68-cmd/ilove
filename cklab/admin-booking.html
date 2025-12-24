@@ -34,10 +34,17 @@
                     <h3 class="fw-bold text-primary mb-1">📅 Booking Management</h3>
                     <p class="text-muted small mb-0">จัดการรายการจองเครื่องล่วงหน้า</p>
                 </div>
-                <button onclick="openBookingModal()" class="btn btn-primary shadow-sm">
-                    <i class="bi bi-plus-lg me-1"></i> เพิ่มการจองใหม่
-                </button>
-            </div>
+                
+                <div class="d-flex gap-2">
+                    <input type="file" id="importFile" accept=".csv" style="display: none;" onchange="handleImport(this)">
+                    <button onclick="document.getElementById('importFile').click()" class="btn btn-success shadow-sm">
+                        <i class="bi bi-file-earmark-spreadsheet-fill me-1"></i> Import CSV
+                    </button>
+                    <button onclick="openBookingModal()" class="btn btn-primary shadow-sm">
+                        <i class="bi bi-plus-lg me-1"></i> เพิ่มการจองใหม่
+                    </button>
+                </div>
+                </div>
 
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-body py-3">
@@ -114,6 +121,8 @@
                                     </select>
                             </div>
                         </div>
+
+                        
 
                         <div class="mb-3">
                             <label class="form-label text-muted small fw-bold">เลือกเครื่อง (PC)</label>

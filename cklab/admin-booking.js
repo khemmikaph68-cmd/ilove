@@ -347,3 +347,110 @@ function saveBooking() {
     if(bookingModal) bookingModal.hide();
     renderBookings();
 }
+
+// ==========================================
+// 4. IMPORT CSV LOGIC
+// ==========================================
+
+function handleImport(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const text = e.target.result;
+        processCSVData(text);
+    };
+    reader.readAsText(file);
+    
+    // ล้างค่า input เพื่อให้เลือกไฟล์เดิมซ้ำได้ถ้าต้องการแก้ไขแล้ว import ใหม่
+    input.value = ''; 
+}
+
+function processCSVData(csvText) {
+    // แยกบรรทัดและลบช่องว่าง
+    const lines = csvText.split('\n').map(l => l.trim()).filter(l => l);
+    
+    // ข้าม Header (บรรทัดแรก)
+    const dataLines = lines.slice(1);
+    
+    if (dataLines.length === 0) {
+        alert("❌ ไม่พบข้อมูลในไฟล์ CSV");
+        return;
+    }
+
+    const bookings = DB.getBookings(); //
+    const pcs = DB.getPCs(); //
+    let successCount = 0;
+    let failCount = 0;
+    let errorLog = [];
+
+    dataLines.forEach((line, index) => {
+        // รูปแบบ CSV ที่คาดหวัง: Date,StartTime,EndTime,PC_ID,UserName,UserType(Student/Staff/etc)
+        // ตัวอย่าง: 2023-12-25,09:00,10:30,1,สมชาย ใจดี,Student
+        
+        const cols = line.split(',');
+        
+        if (cols.length < 5) {
+            failCount++;
+            errorLog.push(`แถว ${index + 2}: ข้อมูลไม่ครบถ้วน`);
+            return;
+        }
+
+        const [date, start, end, pcIdRaw, userName, userType] = cols.map(c => c.trim());
+        const pcId = pcIdRaw.replace('PC-', ''); // เผื่อใส่ PC-01 มา
+
+        // 1. ตรวจสอบว่ามีเครื่องนี้จริงไหม
+        const pc = pcs.find(p => String(p.id) === String(pcId));
+        if (!pc) {
+            failCount++;
+            errorLog.push(`แถว ${index + 2}: ไม่พบเครื่อง ID ${pcId}`);
+            return;
+        }
+
+        // 2. ตรวจสอบคิวชน (Logic เดียวกับ saveBooking)
+        const conflict = bookings.find(b => {
+            return String(b.pcId) === String(pcId) && 
+                   b.date === date && 
+                   ['approved', 'in_use'].includes(b.status) &&
+                   (start < b.endTime && end > b.startTime);
+        });
+
+        if (conflict) {
+            failCount++;
+            errorLog.push(`แถว ${index + 2}: เวลาชนกับคุณ ${conflict.userName}`);
+            return;
+        }
+
+        // 3. สร้างข้อมูลการจอง
+        const newBooking = {
+            id: 'b_imp_' + Date.now() + Math.random().toString(36).substr(2, 5),
+            userId: userType || 'Imported',   
+            userName: userName,
+            pcId: pcId,
+            pcName: pc.name,
+            date: date,
+            startTime: start,
+            endTime: end,
+            type: 'General', // หรือกำหนดตาม CSV ถ้ามี
+            softwareList: [], 
+            status: 'approved' // Import เข้ามาให้อนุมัติเลย
+        };
+
+        bookings.push(newBooking);
+        successCount++;
+    });
+
+    // บันทึกและรีเฟรชตาราง
+    if (successCount > 0) {
+        DB.saveBookings(bookings);
+        renderBookings(); //
+    }
+
+    // สรุปผล
+    let msg = `✅ นำเข้าสำเร็จ: ${successCount} รายการ\n❌ ล้มเหลว: ${failCount} รายการ`;
+    if (errorLog.length > 0) {
+        msg += '\n\nสาเหตุที่ล้มเหลว:\n' + errorLog.join('\n');
+    }
+    alert(msg);
+}
