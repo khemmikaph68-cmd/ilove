@@ -191,7 +191,7 @@ body {
 .btn-add-custom:hover { background-color: #002244; transform: translateY(-1px); }
 
 
-/* --- SOFTWARE SELECTION CARD --- */
+/* --- SOFTWARE SELECTION CARD (Shared across modules) --- */
 .software-type-card {
     cursor: pointer;
     background-color: #fff;
@@ -210,6 +210,28 @@ body {
 }
 .software-type-card.active i {
     transform: scale(1.1); transition: transform 0.2s;
+}
+
+/* ✅ NEW: Soft Card Style (For Checkbox selection in Manage PC) */
+.soft-card {
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    border: 2px solid #f8f9fa; /* สีขอบปกติ */
+}
+.soft-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    border-color: #dee2e6;
+}
+.soft-card.active {
+    border-color: #0d6efd !important; /* ขอบสีน้ำเงิน */
+    background-color: #f0f8ff !important; /* พื้นหลังฟ้าอ่อน */
+}
+.soft-card.active .text-muted {
+    color: #0d6efd !important;
+}
+.hidden-checkbox {
+    display: none;
 }
 
 
@@ -307,7 +329,7 @@ body {
 .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
 
 
-/* --- REPORT & CHART STYLES (Consolidated) --- */
+/* --- REPORT & CHART STYLES --- */
 
 .filter-section {
     transition: all 0.3s ease;
@@ -403,34 +425,4 @@ body {
     position: sticky;
     top: 0;
     z-index: 1020;
-}
-
-/* admin.css (เพิ่มส่วนท้าย) */
-
-/* สไตล์สำหรับการ์ดเลือก Software */
-.soft-card {
-    cursor: pointer;
-    transition: all 0.2s ease-in-out;
-    border: 2px solid #f8f9fa; /* สีขอบปกติ */
-}
-
-.soft-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-    border-color: #dee2e6;
-}
-
-/* สถานะเมื่อถูกเลือก (Active) */
-.soft-card.active {
-    border-color: #0d6efd !important; /* ขอบสีน้ำเงิน */
-    background-color: #f0f8ff !important; /* พื้นหลังฟ้าอ่อน */
-}
-
-.soft-card.active .text-muted {
-    color: #0d6efd !important;
-}
-
-/* ซ่อน Checkbox เดิม */
-.hidden-checkbox {
-    display: none;
 }
