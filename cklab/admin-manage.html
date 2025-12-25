@@ -8,6 +8,30 @@
     
     <link href="main.css" rel="stylesheet">
     <link href="admin.css" rel="stylesheet"> 
+    
+    <style>
+        /* CSS เสริมสำหรับการ์ดเลือก Software */
+        .soft-card {
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            border: 2px solid #f8f9fa;
+        }
+        .soft-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            border-color: #dee2e6;
+        }
+        .soft-card.active {
+            border-color: #0d6efd !important;
+            background-color: #f0f8ff !important;
+        }
+        .soft-card.active .text-muted {
+            color: #0d6efd !important;
+        }
+        .hidden-checkbox {
+            display: none;
+        }
+    </style>
 </head>
 <body class="bg-light">
 
@@ -34,7 +58,7 @@
                     <h3 class="fw-bold text-dark mb-1">🛠️ Manage PC & Status</h3>
                     <p class="text-muted small mb-0">จัดการสถานะเครื่อง (Available, In-use, Reserved, Maintenance)</p>
                 </div>
-                <button onclick="openPCModal()" class="btn btn-success shadow-sm">
+                <button onclick="openPcModal()" class="btn btn-success shadow-sm">
                     <i class="bi bi-plus-lg me-1"></i> เพิ่มเครื่องใหม่
                 </button>
             </div>
@@ -64,14 +88,14 @@
     </div>
 
     <div class="modal fade" id="pcModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title fw-bold" id="pcModalTitle">จัดการข้อมูลเครื่อง</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 shadow rounded-4">
+                <div class="modal-header bg-primary text-white px-4 py-3 rounded-top-4">
+                    <h5 class="modal-title fw-bold" id="pcModalTitle"><i class="bi bi-pc-display me-2"></i>จัดการข้อมูลเครื่อง</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body">
-                    <form onsubmit="event.preventDefault(); savePC();">
+                <div class="modal-body p-4">
+                    <form id="pcForm">
                         <input type="hidden" id="editPcId">
                         
                         <div class="row g-3 mb-3">
@@ -121,19 +145,22 @@
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label small fw-bold text-muted" for="softwareCheckboxList">
-                                เลือก Software / AI ที่ติดตั้ง
-                                <span class="fw-normal text-muted fst-italic ms-2">(ดึงข้อมูลจาก Manage AI)</span>
+                            <label class="form-label small fw-bold text-muted mb-2" for="softwareCheckboxList">
+                                เลือก Software / AI ที่ติดตั้งในเครื่องนี้
+                                <span class="fw-normal text-muted fst-italic ms-2 small">(ดึงข้อมูลจาก Manage AI)</span>
                             </label>
-                            <div class="card bg-light border-0 p-3" style="max-height: 200px; overflow-y: auto;">
-                                <div id="softwareCheckboxList" class="row g-2">
+                            <div class="card bg-white border shadow-sm rounded-3">
+                                <div class="card-body p-2 custom-scrollbar" style="max-height: 250px; overflow-y: auto;">
+                                    <div id="softwareCheckboxList" class="row g-2">
+                                        </div>
                                 </div>
                             </div>
                         </div>
 
                         <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
-                            <button type="button" class="btn btn-light" data-bs-dismiss="modal">ยกเลิก</button>
-                            <button type="submit" class="btn btn-primary px-4 fw-bold">
+                            <button type="button" class="btn btn-light rounded-pill px-4 btn-sm" data-bs-dismiss="modal">ยกเลิก</button>
+                            
+                            <button type="button" onclick="savePC()" class="btn btn-primary rounded-pill px-4 fw-bold shadow-sm btn-sm">
                                 <i class="bi bi-save me-1"></i> บันทึกการเปลี่ยนแปลง
                             </button>
                         </div>

@@ -1,27 +1,16 @@
-/* mock-db.js (Final Version: Dynamic Time Slots Support) */
-
-// ==========================================
-// 0. GLOBAL CONFIG (การตั้งค่าทั่วไป)
-// ==========================================
-
-// ❌ ลบตัวแปรนี้ออก หรือเปลี่ยนเป็น Comment เพราะเราจะย้ายไปเก็บใน DB แทน
-// เพื่อให้สามารถกด เปิด-ปิด ได้ครับ
-/* const AI_TIME_SLOTS = [
-    { id: 1, start: "09:00", end: "10:30", label: "09:00 - 10:30" },
-    ...
-]; 
-*/
+/* mock-db.js (Final Version: Dynamic Time Slots & ForceEndTime Support) */
 
 // ==========================================
 // 1. MOCK DATA (ข้อมูลจำลอง)
 // ==========================================
 
-// ✅ 1.0 ข้อมูลรอบเวลามาตรฐาน (เพิ่ม active: true เพื่อบอกว่าเปิดใช้งานอยู่)
+// ✅ 1.0 ข้อมูลรอบเวลา (เพิ่มรอบตลอดวัน และปรับเวลาตามต้องการ)
 const DEFAULT_AI_SLOTS = [
     { id: 1, start: "09:00", end: "10:30", label: "09:00 - 10:30", active: true },
     { id: 2, start: "10:30", end: "12:00", label: "10:30 - 12:00", active: true },
     { id: 3, start: "13:00", end: "15:00", label: "13:00 - 15:00", active: true }, 
-    { id: 4, start: "15:00", end: "16:30", label: "15:00 - 16:30", active: true }
+    { id: 4, start: "15:00", end: "16:30", label: "15:00 - 16:30", active: true },
+    { id: 5, start: "09:00", end: "16:30", label: "ตลอดวัน (All Day)", active: true } // ✅ เพิ่มรอบตลอดวัน
 ];
 
 // 1.1 ข้อมูลการจอง (Booking)
@@ -230,7 +219,7 @@ const DB = {
     },
     setData: (key, val) => localStorage.setItem(key, JSON.stringify(val)),
 
-    // ✅ 2.1 เพิ่มฟังก์ชันจัดการ Time Slots (ดึงและบันทึก)
+    // 2.1 จัดการ Time Slots (ดึงและบันทึก)
     getAiTimeSlots: () => DB.getData('ck_ai_slots', DEFAULT_AI_SLOTS),
     saveAiTimeSlots: (data) => DB.setData('ck_ai_slots', data),
 
@@ -238,13 +227,20 @@ const DB = {
     getPCs: () => DB.getData('ck_pcs', DEFAULT_PCS),
     savePCs: (data) => DB.setData('ck_pcs', data),
     
-    updatePCStatus: (id, status, user = null) => {
+    // ✅ 2.2 ปรับปรุงฟังก์ชัน updatePCStatus ให้รองรับ options เพิ่มเติม (เช่น forceEndTime)
+    updatePCStatus: (id, status, user = null, options = {}) => {
         let pcs = DB.getPCs();
         let pc = pcs.find(p => String(p.id) === String(id));
         if (pc) {
             pc.status = status;
             pc.currentUser = user;
             pc.startTime = (status === 'in_use') ? Date.now() : null;
+            
+            // ถ้ามี options อื่นๆ ให้ merge เข้าไปด้วย (สำคัญสำหรับ timer.js)
+            if (options) {
+                Object.assign(pc, options);
+            }
+            
             DB.savePCs(pcs);
         }
     },

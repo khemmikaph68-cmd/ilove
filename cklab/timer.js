@@ -1,60 +1,56 @@
-/* timer.js (Fixed & Optimized) */
+/* timer.js (Updated: Precise Slot Countdown) */
 
-let timerInterval; // ✅ ประกาศตัวแปร Global เพื่อให้สั่งหยุดเวลาได้
+let timerInterval; 
 
 document.addEventListener('DOMContentLoaded', () => {
-    // 0. ป้องกัน Error กรณีลืมใส่ mock-db.js หรือโหลดไม่ทัน
+    // 0. ตรวจสอบ Mock DB
     if (typeof DB === 'undefined') {
-        document.body.innerHTML = '<div class="alert alert-danger m-5 text-center"><h3>❌ Error</h3><p>ไม่พบฐานข้อมูล (DB is not defined)<br>กรุณาตรวจสอบว่าได้ import script "mock-db.js" แล้ว</p></div>';
+        document.body.innerHTML = '<div class="alert alert-danger m-5 text-center"><h3>❌ Error</h3><p>ไม่พบฐานข้อมูล (DB is not defined)</p></div>';
         return;
     }
 
     // 1. ดึงข้อมูล Session
     const session = DB.getSession();
 
-    // ถ้าไม่มี Session (เช่น เปิดไฟล์นี้ตรงๆ โดยไม่ผ่านหน้าแรก) ให้ดีดกลับ
     if (!session || !session.startTime) {
         alert('⚠️ ไม่พบข้อมูลการใช้งาน กรุณาลงชื่อเข้าใช้ใหม่');
         window.location.href = 'index.html';
         return;
     }
 
-    // 2. แสดงข้อมูลบนหน้าจอ
+    // 2. แสดงข้อมูลผู้ใช้
     const userName = session.user ? session.user.name : 'ผู้ใช้ไม่ระบุชื่อ';
     const userElement = document.getElementById('userNameDisplay');
     if (userElement) userElement.innerText = userName;
     
-    // แสดงเลขเครื่อง (เช่น PC-01)
+    // แสดงข้อมูลเครื่อง
     const pcIdDisplay = session.pcId ? session.pcId.toString().padStart(2,'0') : '??';
     const pcElement = document.getElementById('pcNameDisplay');
     if (pcElement) pcElement.innerText = `Station: PC-${pcIdDisplay}`;
     
-    // 3. ตัดสินใจว่าจะใช้ระบบจับเวลาแบบไหน
-    // ถ้ามี forceEndTime (เครื่อง AI ที่มีรอบเวลา) ให้ใช้นับถอยหลัง
+    // 3. ตรวจสอบโหมดจับเวลา
+    // ถ้ามี forceEndTime (นาทีจากเที่ยงคืน เช่น 10:30 = 630) ให้เป็นโหมดนับถอยหลัง
     if (session.forceEndTime) {
         console.log("Mode: Countdown (Slot-based)");
-        updateCountdownSlot(); // รันครั้งแรกทันที
-        timerInterval = setInterval(updateCountdownSlot, 1000); // ✅ เก็บใส่ตัวแปร
+        updateCountdownSlot(); // เรียกครั้งแรกทันที
+        timerInterval = setInterval(updateCountdownSlot, 1000); 
     } else {
-        // ถ้าไม่มี forceEndTime (เครื่องทั่วไป) ให้ใช้นับเวลาเดินหน้า
-        console.log("Mode: Normal Timer");
-        updateTimer(); // รันครั้งแรกทันที
-        timerInterval = setInterval(updateTimer, 1000); // ✅ เก็บใส่ตัวแปร
+        console.log("Mode: Normal Timer (Elapsed)");
+        updateTimer(); 
+        timerInterval = setInterval(updateTimer, 1000); 
     }
 });
 
-// --- ฟังก์ชัน 1: นับเวลาเดินหน้า (สำหรับเครื่องทั่วไป) ---
+// --- ฟังก์ชัน 1: นับเวลาเดินหน้า (General Use) ---
 function updateTimer() {
     const session = DB.getSession(); 
     if (!session) return;
 
     const now = Date.now();
-    let diff = now - session.startTime; // เวลาปัจจุบัน - เวลาเริ่ม
+    let diff = now - session.startTime;
     
-    // ✅ ป้องกันเวลาติดลบ (กรณี Clock Skew)
     if (diff < 0) diff = 0;
 
-    // แปลงเป็น ชั่วโมง:นาที:วินาที
     const h = Math.floor(diff / 3600000).toString().padStart(2, '0');
     const m = Math.floor((diff % 3600000) / 60000).toString().padStart(2, '0');
     const s = Math.floor((diff % 60000) / 1000).toString().padStart(2, '0');
@@ -63,60 +59,73 @@ function updateTimer() {
     if (display) display.innerText = `${h}:${m}:${s}`;
 }
 
-// --- ฟังก์ชัน 2: นับถอยหลัง (สำหรับเครื่อง AI/Slot) ---
+// --- ฟังก์ชัน 2: นับถอยหลังตามรอบ (AI/Slot Use) ---
+// 
 function updateCountdownSlot() {
     const session = DB.getSession();
     if (!session) return;
 
-    const now = new Date();
-    const currentMins = now.getHours() * 60 + now.getMinutes();
-    const currentSecs = now.getSeconds();
+    // 1. แปลง forceEndTime (เช่น 630 นาที) ให้เป็น Date Object ของวันนี้
+    const endMinutesTotal = session.forceEndTime; // ค่าจาก DB เช่น 630 (คือ 10:30)
+    const targetDate = new Date();
     
-    // session.forceEndTime คือนาทีจบของ Slot (เช่น 10:30 = 630 นาที)
-    const endMins = session.forceEndTime; 
+    const targetHour = Math.floor(endMinutesTotal / 60);
+    const targetMin = endMinutesTotal % 60;
     
-    // เวลาปัจจุบันในหน่วยนาทีรวมทศนิยม (เพื่อความละเอียดวินาที)
-    const nowTotalMins = currentMins + (currentSecs / 60);
-    let remainingMins = endMins - nowTotalMins;
+    targetDate.setHours(targetHour, targetMin, 0, 0); // ตั้งเวลาจบของวันนี้
 
-    if (remainingMins <= 0) {
-        // 🚨 หมดเวลา! บังคับออก
-        if (timerInterval) clearInterval(timerInterval); // ✅ สั่งหยุด Loop ทันที
+    // 2. หาผลต่างเวลา (Milliseconds)
+    const now = new Date();
+    const diff = targetDate - now;
+
+    // 3. เช็คว่าหมดเวลาหรือยัง
+    if (diff <= 0) {
+        if (timerInterval) clearInterval(timerInterval);
         
         const display = document.getElementById('timerDisplay');
-        if (display) display.innerText = "00:00:00";
+        if (display) {
+            display.innerText = "00:00:00";
+            display.classList.add('text-danger', 'fw-bold');
+        }
         
-        // ✅ ใช้ setTimeout เล็กน้อยเพื่อให้หน้าจอ update เป็น 00:00:00 ก่อนเด้ง Alert
         setTimeout(() => {
-            alert("หมดเวลาใช้งานในรอบนี้แล้ว ระบบจะทำการ Check-out");
+            alert("⏰ หมดเวลาใช้งานในรอบนี้แล้ว ระบบจะทำการ Check-out");
             doCheckout(true); 
         }, 100);
         return;
     }
 
-    // แปลงเวลาที่เหลือเป็น ชม:นาที:วินาที เพื่อแสดงผล
-    const h = Math.floor(remainingMins / 60).toString().padStart(2, '0');
-    const m = Math.floor(remainingMins % 60).toString().padStart(2, '0');
-    const s = Math.floor((remainingMins * 60) % 60).toString().padStart(2, '0');
+    // 4. แปลงเป็น ชั่วโมง:นาที:วินาที
+    const h = Math.floor(diff / 3600000).toString().padStart(2, '0');
+    const m = Math.floor((diff % 3600000) / 60000).toString().padStart(2, '0');
+    const s = Math.floor((diff % 60000) / 1000).toString().padStart(2, '0');
 
     const timerDisplay = document.getElementById('timerDisplay');
     if (timerDisplay) {
+        // แสดงผล
         timerDisplay.innerText = `เหลือเวลา ${h}:${m}:${s}`;
-        timerDisplay.style.color = '#dc3545'; // สีแดง
+
+        // 5. แจ้งเตือนช่วงโค้งสุดท้าย (น้อยกว่า 5 นาที)
+        if (diff < 5 * 60 * 1000) { 
+            timerDisplay.style.color = '#dc3545'; // สีแดง
+            // ทำให้กระพริบถ้าน้อยกว่า 1 นาที
+            if (diff < 60 * 1000) {
+                timerDisplay.style.opacity = (new Date().getMilliseconds() < 500) ? '1' : '0.5';
+            }
+        } else {
+            timerDisplay.style.color = ''; // สีปกติ
+        }
     }
 }
 
-// --- ฟังก์ชัน Check-out (ปกติ) ---
+// --- ฟังก์ชัน Check-out ---
 function doCheckout(isAuto = false) {
-    // ถ้าไม่ใช่ Auto (ผู้ใช้กดเอง) ให้ถามยืนยันก่อน
     if (!isAuto && !confirm('คุณต้องการเลิกใช้งานและออกจากระบบใช่หรือไม่?')) {
         return;
     }
     
-    // ✅ หยุดเวลาทันทีเมื่อยืนยันออก ป้องกัน Alert ซ้อน
     if (timerInterval) clearInterval(timerInterval);
 
-    // 1. คำนวณระยะเวลาใช้งานที่ผ่านมา
     const session = DB.getSession();
     if (!session) {
         window.location.href = 'index.html';
@@ -127,17 +136,15 @@ function doCheckout(isAuto = false) {
     const durationMilliseconds = endTime - session.startTime;
     const durationMinutes = Math.round(durationMilliseconds / 60000); 
 
-    // 2. บันทึกระยะเวลาลงใน Session ชั่วคราว ก่อนส่งไปหน้า Feedback
     session.durationMinutes = durationMinutes; 
     DB.setSession(session);
     
-    // 3. ไปหน้าประเมินความพึงพอใจ
     window.location.href = 'feedback.html';
 }
 
-// --- ฟังก์ชัน Force Logout (ฉุกเฉิน/ไม่เอา Feedback) ---
+// --- ฟังก์ชัน Force Logout ---
 function forceLogout() {
-    if (timerInterval) clearInterval(timerInterval); // ✅ หยุดเวลา
+    if (timerInterval) clearInterval(timerInterval);
 
     const session = DB.getSession(); 
     if (!session) {
@@ -145,7 +152,6 @@ function forceLogout() {
         return;
     }
     
-    // 1. Log END_SESSION
     DB.saveLog({
         action: 'Force Check-out',
         userId: session.user.id || 'N/A',
@@ -154,13 +160,11 @@ function forceLogout() {
         startTime: new Date(session.startTime).toISOString(),
         timestamp: new Date().toISOString(),
         durationMinutes: 0, 
+        usedSoftware: session.software || [], // บันทึก software ที่เลือกตอนแรก
         satisfactionScore: 'N/A',
     });
 
-    // 2. คืนสถานะ PC เป็นว่าง
     DB.updatePCStatus(session.pcId, 'available', null);
-
-    // 3. ล้าง Session
     DB.clearSession();
     alert("❌ ระบบทำการล็อคเอาท์ฉุกเฉินแล้ว");
     window.location.href = 'index.html';

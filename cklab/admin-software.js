@@ -1,14 +1,15 @@
-/* admin-software.js (Updated: Manage Software + Manage Time Slots) */
+/* admin-software.js (Final: Manage Software & Time Slots) */
 
 let softwareModal;
 
 document.addEventListener('DOMContentLoaded', () => {
     // 1. เช็คสิทธิ์ Admin
     const session = DB.getSession();
-    if (!session || !session.user || session.user.role !== 'admin') {
+    /* if (!session || !session.user || session.user.role !== 'admin') {
         window.location.href = 'admin-login.html';
         return;
     }
+    */
 
     // 2. Init Modal
     const modalEl = document.getElementById('softwareModal');
@@ -16,18 +17,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 3. Render Data
     renderTable();      // วาดตาราง Software
-    renderTimeSlots();  // ✅ วาดปุ่มจัดการเวลา (ส่วนที่ขาดไป)
+    renderTimeSlots();  // วาดปุ่มจัดการเวลา
 });
 
 // ==========================================
-// ✅✅✅ TIME SLOT MANAGEMENT (ส่วนที่เพิ่ม) ✅✅✅
+// ✅✅✅ TIME SLOT MANAGEMENT (จัดการรอบเวลา) ✅✅✅
 // ==========================================
 
 function renderTimeSlots() {
     const container = document.getElementById('timeSlotContainer');
     if (!container) return;
 
-    // ดึงข้อมูลจาก DB (ถ้าไม่มีฟังก์ชันนี้ ให้เช็ค mock-db.js อีกที)
+    // ดึงข้อมูลรอบเวลาจาก DB
     const slots = (DB.getAiTimeSlots && typeof DB.getAiTimeSlots === 'function') 
                   ? DB.getAiTimeSlots() 
                   : [];
@@ -40,18 +41,21 @@ function renderTimeSlots() {
     }
 
     slots.forEach(slot => {
-        // เช็คว่า Active หรือไม่ เพื่อกำหนดสีและสถานะสวิตช์
+        // เช็คสถานะเพื่อกำหนดสี
         const isChecked = slot.active ? 'checked' : '';
         const statusText = slot.active ? 'เปิดให้บริการ' : 'ปิดชั่วคราว';
         const statusClass = slot.active ? 'text-success' : 'text-muted';
         const cardBorder = slot.active ? 'border-primary' : 'border-secondary';
         const bgClass = slot.active ? 'bg-white' : 'bg-light';
+        
+        // ถ้ามี label (เช่น "ตลอดวัน") ให้แสดง label แทนเวลา
+        const displayText = slot.label || `${slot.start} - ${slot.end}`;
 
         container.innerHTML += `
             <div class="col-md-3 col-sm-6">
                 <div class="card h-100 ${bgClass} ${cardBorder} border-opacity-25 shadow-sm">
                     <div class="card-body d-flex flex-column align-items-center justify-content-center py-3">
-                        <h5 class="fw-bold mb-1">${slot.start} - ${slot.end}</h5>
+                        <h5 class="fw-bold mb-1 text-center">${displayText}</h5>
                         <small class="fw-bold ${statusClass} mb-3">● ${statusText}</small>
                         
                         <div class="form-check form-switch">
@@ -71,21 +75,26 @@ function toggleTimeSlot(id) {
     let slots = DB.getAiTimeSlots();
     const index = slots.findIndex(s => s.id === id);
     if (index !== -1) {
-        slots[index].active = !slots[index].active; // สลับค่า True/False
+        slots[index].active = !slots[index].active; // สลับสถานะ
         DB.saveAiTimeSlots(slots);
         renderTimeSlots(); // รีเฟรชหน้าจอ
     }
 }
 
+// ✅ ฟังก์ชันรีเซ็ตค่าเริ่มต้น (ดึงจาก DEFAULT_AI_SLOTS ใน mock-db.js)
 function resetDefaultSlots() {
-    if(confirm("ต้องการรีเซ็ตเวลากลับเป็นค่าเริ่มต้น (เปิดทุกรอบ) หรือไม่?")) {
-        localStorage.removeItem('ck_ai_slots'); // ลบค่าที่แก้ไว้ออก
-        renderTimeSlots(); // โหลดใหม่จาก Default ใน mock-db
+    if(confirm("ต้องการรีเซ็ตการตั้งค่ารอบเวลาเป็นค่าเริ่มต้น?")) {
+        // ลบข้อมูลที่เก็บใน LocalStorage ออก เพื่อให้ระบบกลับไปอ่านค่า Default ใน mock-db.js
+        localStorage.removeItem('ck_ai_slots'); 
+        
+        // บังคับ Reload หน้าจอเพื่อให้ค่า Default ถูกโหลดเข้ามาใหม่
+        renderTimeSlots();
+        alert("รีเซ็ตเรียบร้อยแล้ว");
     }
 }
 
 // ==========================================
-// 💻 SOFTWARE MANAGEMENT (ส่วนเดิม)
+// 💻 SOFTWARE MANAGEMENT (จัดการซอฟต์แวร์)
 // ==========================================
 
 function renderTable() {
@@ -121,12 +130,10 @@ function renderTable() {
     }
 
     lib.forEach(item => {
-        // Badge สวยๆ ตามดีไซน์
         let typeBadge = item.type === 'AI' 
             ? '<span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-robot me-1"></i>AI Tool</span>' 
             : '<span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle"><i class="bi bi-hdd me-1"></i>Software</span>';
 
-        // เช็ควันหมดอายุ
         let expireHtml = '';
         if (item.expire) {
             const today = new Date().toLocaleDateString('en-CA');
@@ -180,7 +187,6 @@ function openModal(id = null) {
             document.getElementById('editVersion').value = item.version;
             document.getElementById('editExpire').value = item.expire || '';
             
-            // Set Type และอัปเดตการ์ดให้ Active
             document.getElementById('editType').value = item.type;
             updateTypeCardUI(item.type);
         }
@@ -191,7 +197,6 @@ function openModal(id = null) {
     if(softwareModal) softwareModal.show();
 }
 
-// ฟังก์ชันช่วยเลือกการ์ด (ทำงานคู่กับ HTML ใหม่)
 function updateTypeCardUI(type) {
     const cards = document.querySelectorAll('.software-type-card');
     cards.forEach(card => card.classList.remove('active'));
